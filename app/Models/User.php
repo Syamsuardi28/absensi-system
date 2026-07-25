@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
+use App\Enums\UserStatus;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'phone', 'qr_token', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'phone', 'qr_token', 'status'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -24,7 +26,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_active' => 'boolean',
+            'status' => UserStatus::class,
         ];
     }
 
@@ -38,12 +40,12 @@ class User extends Authenticatable
         return $this->hasOne(Student::class);
     }
 
-    public function attendances()
+    public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class);
     }
 
-    public function leaveRequests()
+    public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
     }

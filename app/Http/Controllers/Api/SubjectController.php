@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Subject\StoreSubjectRequest;
+use App\Http\Requests\Subject\UpdateSubjectRequest;
 use App\Http\Resources\SubjectResource;
 use App\Models\Subject;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class SubjectController extends Controller
 {
@@ -20,14 +21,9 @@ class SubjectController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreSubjectRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'unique:subjects,code'],
-        ]);
-
-        $subject = Subject::create($data);
+        $subject = Subject::create($request->validated());
 
         return response()->json([
             'success' => true,
@@ -44,14 +40,9 @@ class SubjectController extends Controller
         ]);
     }
 
-    public function update(Request $request, Subject $subject): JsonResponse
+    public function update(UpdateSubjectRequest $request, Subject $subject): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'code' => ['sometimes', 'string', 'unique:subjects,code,'.$subject->id],
-        ]);
-
-        $subject->update($data);
+        $subject->update($request->validated());
 
         return response()->json([
             'success' => true,

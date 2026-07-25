@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\AttendanceType;
+use App\Jobs\SendNotificationJob;
 use App\Models\Attendance;
 use App\Models\Schedule;
 use App\Models\User;
@@ -17,9 +18,14 @@ class AttendanceService
 
         $existing = Attendance::where('user_id', $user->id)
             ->whereDate('scan_time', $now->toDateString())
-            ->where('type', $schedule ? AttendanceType::Session : AttendanceType::Self)
+            ->where('type', $schedule ? AttendanceType::Session : AttendanceType::SelfIn)
             ->when($schedule, fn ($q) => $q->where('schedule_id', $schedule->id))
             ->first();
+
+        $existingSelfOut = Attendance::where('user_id', $user->id)
+            ->whereDate('scan_time', $now->toDateString())
+            ->where('type', AttendanceType::SelfOut)
+            ->exists();
 
         if ($existing) {
             throw new \RuntimeException('Anda sudah melakukan absensi hari ini.');
@@ -27,13 +33,29 @@ class AttendanceService
 
         $status = AttendanceStatus::Hadir;
 
-        if ($schedule) {
-            $start = Carbon::parse($schedule->start_time);
-            $gracePeriod = (int) config('attendance.grace_period', 15);
-            if ($now->gt($start->addMinutes($gracePeriod))) {
-                $status = AttendanceStatus::Terlambat;
+        if (! $schedule) {
+            if ($existingSelfOut) {
+                throw new \RuntimeException('Anda sudah melakukan absensi pulang hari ini.');
             }
-        } else {
+
+            $hasSelfIn = Attendance::where('user_id', $user->id)
+                ->whereDate('scan_time', $now->toDateString())
+                ->where('type', AttendanceType::SelfIn)
+                ->exists();
+
+            if ($hasSelfIn) {
+                $attendance = Attendance::create([
+                    'user_id' => $user->id,
+                    'type' => AttendanceType::SelfOut,
+                    'status' => AttendanceStatus::Hadir,
+                    'scan_time' => $now,
+                ]);
+
+                AuditLogService::log('attendance_scan_out', Attendance::class, $attendance->id, $user);
+
+                return $attendance->load('user');
+            }
+
             $cutoffTime = Carbon::now()->setTimeFromTimeString(
                 config('attendance.entry_cutoff', '07:30')
             );
@@ -41,17 +63,35 @@ class AttendanceService
             if ($now->gt($cutoffTime->addMinutes($gracePeriod))) {
                 $status = AttendanceStatus::Terlambat;
             }
+
+            $type = AttendanceType::SelfIn;
+        } else {
+            $start = Carbon::parse($schedule->start_time);
+            $gracePeriod = (int) config('attendance.grace_period', 15);
+            if ($now->gt($start->addMinutes($gracePeriod))) {
+                $status = AttendanceStatus::Terlambat;
+            }
+
+            $type = AttendanceType::Session;
         }
 
         $attendance = Attendance::create([
             'user_id' => $user->id,
             'schedule_id' => $schedule?->id,
-            'type' => $schedule ? AttendanceType::Session : AttendanceType::Self,
+            'type' => $type,
             'status' => $status,
             'scan_time' => $now,
         ]);
 
         AuditLogService::log('attendance_scan', Attendance::class, $attendance->id, $user);
+
+        if ($status === AttendanceStatus::Alpa && $user->student?->parent_email) {
+            SendNotificationJob::dispatch($user, 'email', 'alpa_alert', [
+                'attendance_id' => $attendance->id,
+                'student_name' => $user->name,
+                'date' => $now->toDateString(),
+            ]);
+        }
 
         return $attendance->load('user');
     }
@@ -70,15 +110,27 @@ class AttendanceService
                 continue;
             }
 
+            $status = AttendanceStatus::from($item['status']);
+
             $results[] = Attendance::create([
                 'user_id' => $item['user_id'],
                 'schedule_id' => $scheduleId,
                 'type' => AttendanceType::Session,
-                'status' => AttendanceStatus::from($item['status']),
+                'status' => $status,
                 'scan_time' => now(),
                 'notes' => $item['notes'] ?? null,
                 'recorded_by' => $recordedBy->id,
             ]);
+
+            if ($status === AttendanceStatus::Alpa) {
+                $student = User::find($item['user_id']);
+                if ($student?->student?->parent_email) {
+                    SendNotificationJob::dispatch($student, 'email', 'alpa_alert', [
+                        'student_name' => $student->name,
+                        'date' => now()->toDateString(),
+                    ]);
+                }
+            }
         }
 
         return $results;

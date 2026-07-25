@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SchoolYear\StoreSchoolYearRequest;
+use App\Http\Requests\SchoolYear\UpdateSchoolYearRequest;
 use App\Http\Resources\SchoolYearResource;
 use App\Models\SchoolYear;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class SchoolYearController extends Controller
 {
@@ -20,16 +21,9 @@ class SchoolYearController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreSchoolYearRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after:start_date'],
-            'is_active' => ['boolean'],
-        ]);
-
-        $schoolYear = SchoolYear::create($data);
+        $schoolYear = SchoolYear::create($request->validated());
 
         return response()->json([
             'success' => true,
@@ -46,16 +40,9 @@ class SchoolYearController extends Controller
         ]);
     }
 
-    public function update(Request $request, SchoolYear $schoolYear): JsonResponse
+    public function update(UpdateSchoolYearRequest $request, SchoolYear $schoolYear): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'start_date' => ['sometimes', 'date'],
-            'end_date' => ['sometimes', 'date', 'after:start_date'],
-            'is_active' => ['boolean'],
-        ]);
-
-        $schoolYear->update($data);
+        $schoolYear->update($request->validated());
 
         return response()->json([
             'success' => true,

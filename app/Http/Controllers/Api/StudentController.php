@@ -82,7 +82,6 @@ class StudentController extends Controller
                 'name' => $data['name'] ?? null,
                 'email' => $data['email'] ?? null,
                 'phone' => $data['phone'] ?? null,
-                'is_active' => $data['is_active'] ?? null,
             ]);
 
             if (! empty($data['password'])) {

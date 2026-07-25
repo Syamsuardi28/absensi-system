@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Class\StoreClassRequest;
+use App\Http\Requests\Class\UpdateClassRequest;
 use App\Http\Resources\SchoolClassResource;
 use App\Models\SchoolClass;
 use Illuminate\Http\JsonResponse;
@@ -23,15 +25,9 @@ class ClassController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreClassRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'school_year_id' => ['required', 'exists:school_years,id'],
-            'homeroom_teacher_id' => ['nullable', 'exists:teachers,id'],
-        ]);
-
-        $class = SchoolClass::create($data);
+        $class = SchoolClass::create($request->validated());
 
         return response()->json([
             'success' => true,
@@ -48,15 +44,9 @@ class ClassController extends Controller
         ]);
     }
 
-    public function update(Request $request, SchoolClass $class): JsonResponse
+    public function update(UpdateClassRequest $request, SchoolClass $class): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'school_year_id' => ['sometimes', 'exists:school_years,id'],
-            'homeroom_teacher_id' => ['nullable', 'exists:teachers,id'],
-        ]);
-
-        $class->update($data);
+        $class->update($request->validated());
 
         return response()->json([
             'success' => true,

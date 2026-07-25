@@ -26,7 +26,7 @@ class AttendanceController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'QR Code tidak valid atau pengguna tidak aktif.',
-                ], 422);
+                ], 404);
             }
 
             $attendance = $this->attendanceService->recordScan($user);
@@ -40,7 +40,7 @@ class AttendanceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 422);
+            ], 409);
         }
     }
 
@@ -60,6 +60,8 @@ class AttendanceController extends Controller
 
     public function session(Request $request): JsonResponse
     {
+        $this->authorize('recordSession', \App\Models\Attendance::class);
+
         $validated = $request->validate([
             'schedule_id' => ['required', 'exists:schedules,id'],
             'date' => ['required', 'date'],
@@ -84,6 +86,8 @@ class AttendanceController extends Controller
 
     public function report(Request $request): JsonResponse
     {
+        $this->authorize('report', \App\Models\Attendance::class);
+
         $data = $this->attendanceService->getReport($request->only([
             'class_id', 'start_date', 'end_date', 'status',
         ]));

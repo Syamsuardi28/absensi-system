@@ -16,17 +16,17 @@ class AuthController extends Controller
     {
         $credentials = $request->validated();
 
-        if (! Auth::guard('web')->attempt($credentials)) {
+        if (! Auth::attempt($credentials)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Email atau password salah.',
             ], 401);
         }
 
-        $user = Auth::guard('web')->user();
+        $user = Auth::user();
 
-        if (! $user->is_active) {
-            Auth::guard('web')->logout();
+        if ($user->status?->value !== 'active') {
+            Auth::logout();
 
             return response()->json([
                 'success' => false,
@@ -34,18 +34,17 @@ class AuthController extends Controller
             ], 403);
         }
 
-        if ($request->hasSession()) {
-            $request->session()->regenerate();
-        }
-
         if (! $user->qr_token) {
             $qrService->generate($user);
         }
+
+        $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil.',
             'data' => [
+                'token' => $token,
                 'user' => new UserResource($user->load('roles', 'teacher', 'student')),
             ],
         ]);
@@ -53,12 +52,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        Auth::guard('web')->logout();
-
-        if ($request->hasSession()) {
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-        }
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json([
             'success' => true,

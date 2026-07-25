@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Schedule\StoreScheduleRequest;
+use App\Http\Requests\Schedule\UpdateScheduleRequest;
 use App\Http\Resources\ScheduleResource;
 use App\Models\Schedule;
 use Illuminate\Http\JsonResponse;
@@ -24,18 +26,9 @@ class ScheduleController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreScheduleRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'class_id' => ['required', 'exists:school_classes,id'],
-            'subject_id' => ['required', 'exists:subjects,id'],
-            'teacher_id' => ['required', 'exists:teachers,id'],
-            'day' => ['required', 'in:senin,selasa,rabu,kamis,jumat,sabtu,minggu'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
-        ]);
-
-        $schedule = Schedule::create($data);
+        $schedule = Schedule::create($request->validated());
 
         return response()->json([
             'success' => true,
@@ -52,23 +45,9 @@ class ScheduleController extends Controller
         ]);
     }
 
-    public function update(Request $request, Schedule $schedule): JsonResponse
+    public function update(UpdateScheduleRequest $request, Schedule $schedule): JsonResponse
     {
-        $data = $request->validate([
-            'class_id' => ['sometimes', 'exists:school_classes,id'],
-            'subject_id' => ['sometimes', 'exists:subjects,id'],
-            'teacher_id' => ['sometimes', 'exists:teachers,id'],
-            'day' => ['sometimes', 'in:senin,selasa,rabu,kamis,jumat,sabtu,minggu'],
-            'start_time' => ['sometimes', 'date_format:H:i'],
-            'end_time' => ['sometimes', 'date_format:H:i', function ($attribute, $value, $fail) use ($request, $schedule) {
-                $start = $request->input('start_time', $schedule->start_time);
-                if ($start && $value <= $start) {
-                    $fail('Jam selesai harus setelah jam mulai.');
-                }
-            }],
-        ]);
-
-        $schedule->update($data);
+        $schedule->update($request->validated());
 
         return response()->json([
             'success' => true,

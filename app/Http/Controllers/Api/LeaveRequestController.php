@@ -54,6 +54,9 @@ class LeaveRequestController extends Controller
     public function approve(int $id, Request $request): JsonResponse
     {
         $leave = LeaveRequest::findOrFail($id);
+
+        $this->authorize('approve', $leave);
+
         $this->leaveService->approve($leave, $request->user(), $request->input('note'));
 
         return response()->json([
@@ -65,9 +68,12 @@ class LeaveRequestController extends Controller
 
     public function reject(int $id, Request $request): JsonResponse
     {
+        $leave = LeaveRequest::findOrFail($id);
+
+        $this->authorize('reject', $leave);
+
         $request->validate(['rejection_note' => ['required', 'string']]);
 
-        $leave = LeaveRequest::findOrFail($id);
         $this->leaveService->reject($leave, $request->user(), $request->input('rejection_note'));
 
         return response()->json([

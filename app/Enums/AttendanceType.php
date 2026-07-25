@@ -4,13 +4,15 @@ namespace App\Enums;
 
 enum AttendanceType: string
 {
-    case Self = 'self';
+    case SelfIn = 'self_in';
+    case SelfOut = 'self_out';
     case Session = 'session';
 
     public function label(): string
     {
         return match ($this) {
-            self::Self => 'Absensi Mandiri',
+            self::SelfIn => 'Absensi Masuk',
+            self::SelfOut => 'Absensi Pulang',
             self::Session => 'Absensi Sesi',
         };
     }

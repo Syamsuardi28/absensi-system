@@ -4,6 +4,7 @@ import authApi from '../api/modules/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
+  const token = ref(null)
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
@@ -18,6 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     try {
       const { data } = await authApi.login({ email, password })
+      token.value = data.data.token
       user.value = data.data.user
       return data
     } finally {
@@ -31,6 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = data.data.user
     } catch {
       user.value = null
+      token.value = null
     }
   }
 
@@ -38,13 +41,15 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authApi.logout()
     } finally {
+      token.value = null
       user.value = null
     }
   }
 
   function clearUser() {
+    token.value = null
     user.value = null
   }
 
-  return { user, loading, isAuthenticated, isAdmin, isTeacher, isStudent, login, fetchUser, logout, clearUser }
+  return { user, token, loading, isAuthenticated, isAdmin, isTeacher, isStudent, login, fetchUser, logout, clearUser }
 })

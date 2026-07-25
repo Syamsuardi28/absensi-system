@@ -10,7 +10,6 @@ enum DayEnum: string
     case Kamis = 'kamis';
     case Jumat = 'jumat';
     case Sabtu = 'sabtu';
-    case Minggu = 'minggu';
 
     public function label(): string
     {
@@ -21,7 +20,6 @@ enum DayEnum: string
             self::Kamis => 'Kamis',
             self::Jumat => 'Jumat',
             self::Sabtu => 'Sabtu',
-            self::Minggu => 'Minggu',
         };
     }
 }

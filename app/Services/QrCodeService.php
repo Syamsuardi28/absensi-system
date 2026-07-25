@@ -27,7 +27,7 @@ class QrCodeService
     public function validate(string $token): ?User
     {
         return User::where('qr_token', $token)
-            ->where('is_active', true)
+            ->where('status', 'active')
             ->first();
     }
 

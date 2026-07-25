@@ -29,4 +29,19 @@ class Notification extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function markAsSent(): void
+    {
+        $this->update([
+            'status' => NotificationStatus::Sent,
+            'sent_at' => now(),
+        ]);
+    }
+
+    public function markAsFailed(): void
+    {
+        $this->update([
+            'status' => NotificationStatus::Failed,
+        ]);
+    }
 }

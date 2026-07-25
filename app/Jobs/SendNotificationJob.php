@@ -4,11 +4,14 @@ namespace App\Jobs;
 
 use App\Models\Notification;
 use App\Models\User;
+use App\Notifications\AlpaNotification;
+use App\Notifications\LeaveStatusNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Mail;
 
 class SendNotificationJob implements ShouldQueue
 {
@@ -39,8 +42,17 @@ class SendNotificationJob implements ShouldQueue
     private function sendEmail(Notification $notification): void
     {
         try {
-            // TODO: Integrate with mail service when mail config is set up
-            // Mail::to($this->user->email)->send(...);
+            if ($this->type === 'alpa_alert' && ! empty($this->payload['attendance_id'])) {
+                $attendance = \App\Models\Attendance::find($this->payload['attendance_id']);
+                if ($attendance) {
+                    Mail::to($this->user->email)->queue(new AlpaNotification($attendance));
+                }
+            } elseif ($this->type === 'leave_decision' && ! empty($this->payload['leave_request_id'])) {
+                $leaveRequest = \App\Models\LeaveRequest::find($this->payload['leave_request_id']);
+                if ($leaveRequest) {
+                    Mail::to($this->user->email)->queue(new LeaveStatusNotification($leaveRequest));
+                }
+            }
 
             $notification->markAsSent();
         } catch (\Throwable $e) {
